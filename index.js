@@ -11,6 +11,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates,
   ],
 });
 
@@ -70,12 +71,9 @@ client.on('messageCreate', async message => {
   const args = content.slice(prefix.length).trim().split(/ +/);
   const command = args.shift().toLowerCase();
 
-  // ?afk
   if (command === 'afk') {
     const reason = args.join(' ') || 'AFK gaya bhai 😴';
-    if (reason.includes('@')) {
-      return message.reply('❌ Mentions not allowed in AFK reason.');
-    }
+    if (reason.includes('@')) return message.reply('❌ Mentions not allowed in AFK reason.');
 
     afkMap.set(userId, {
       reason,
@@ -92,18 +90,12 @@ client.on('messageCreate', async message => {
     message.reply(`☕ <@${userId}> is now AFK: *${reason}*`);
   }
 
-  // ?tempafk
-  if (command === 'tempafk') {
+  else if (command === 'tempafk') {
     const minutes = parseInt(args.shift());
     const reason = args.join(' ') || 'Temporary AFK';
 
-    if (isNaN(minutes)) {
-      return message.reply('⏱️ Please provide time in minutes. Example: `?tempafk 5 I\'ll be back`');
-    }
-
-    if (reason.includes('@')) {
-      return message.reply('❌ Mentions not allowed in AFK reason.');
-    }
+    if (isNaN(minutes)) return message.reply('⏱️ Please provide time in minutes. Example: `?tempafk 5 I\'ll be back`');
+    if (reason.includes('@')) return message.reply('❌ Mentions not allowed in AFK reason.');
 
     afkMap.set(userId, {
       reason,
@@ -139,15 +131,12 @@ client.on('messageCreate', async message => {
     }, minutes * 60 * 1000);
   }
 
-  // ?afktop
-  if (command === 'afktop') {
+  else if (command === 'afktop') {
     const sorted = [...afkCounts.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
 
-    if (sorted.length === 0) {
-      return message.reply('🤷 Nobody has gone AFK yet!');
-    }
+    if (sorted.length === 0) return message.reply('🤷 Nobody has gone AFK yet!');
 
     const leaderboard = sorted.map(([id, count], i) => {
       const user = message.guild.members.cache.get(id);
@@ -165,27 +154,59 @@ client.on('messageCreate', async message => {
     });
   }
 
-  // ?help
-  if (command === 'help') {
+  else if (command === 'help') {
     message.channel.send({
       embeds: [
         new EmbedBuilder()
           .setColor(0x3498db)
           .setTitle('🤖 AFK Bot Help')
           .setDescription(`
-Here are the available commands:
-
 📌 **?afk [reason]** — Set your AFK status  
 ⏱️ **?tempafk [minutes] [reason]** — Timed AFK with auto-return  
-🏆 **?afktop** — Show the top AFK users  
-📘 **?help** — View this help menu
+🏆 **?afktop** — Show top AFK users
 
+🎶 **?play [song name]** — Play music by name  
+🔁 **?loop on/off [song]** — Loop a song forever  
+⏭️ **?skip** — Skip current song  
+📄 **?queue** — Show queue  
+🎵 **?nowplaying** — What’s playing now  
+⏸️ **?pause** / ▶️ **?resume** — Pause/resume music  
+🛑 **?stop** — Stop music and leave VC  
+
+📘 **?help** — Show this help menu  
 🔗 [Join our Discord server](https://discord.gg/flawlessop)
           `)
           .setFooter({ text: 'Made by fahad._.ali 💻' })
       ]
     });
   }
+
+  // 🎵 MUSIC COMMANDS
+  else if (command === 'play') {
+    require('./commands/music').execute(message, args);
+  }
+  else if (command === 'stop') {
+    require('./commands/stop').execute(message);
+  }
+  else if (command === 'pause') {
+    require('./commands/pause').execute(message);
+  }
+  else if (command === 'resume') {
+    require('./commands/resume').execute(message);
+  }
+  else if (command === 'loop') {
+    require('./commands/loop').execute(message, args);
+  }
+  else if (command === 'skip') {
+    require('./commands/skip').execute(message);
+  }
+  else if (command === 'queue') {
+    require('./commands/queue').execute(message);
+  }
+  else if (command === 'nowplaying') {
+    require('./commands/nowplaying').execute(message);
+  }
+
 });
 
 client.login(process.env.DISCORD_TOKEN);
